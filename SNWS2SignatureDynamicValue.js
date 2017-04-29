@@ -45,7 +45,7 @@
 		return request.getHeaderByName('Content-Type');
 	}
 
-	function shouldIncludeContentDigest(contentType) {
+	function contentTypeIsQueryParameters(contentType) {
 		// we don't send Digest for form data, because server treats this as URL parameters
 		return (contentType && contentType.match(kFormUrlEncodedContentTypeRegex));
 	}
@@ -53,7 +53,7 @@
 	function canonicalQueryParameters(request) {
 		var data = request.body,
 			contentType = requestContentType(request),
-			params = (shouldIncludeContentDigest(contentType)
+			params = (contentTypeIsQueryParameters(contentType)
 				? request.getUrlEncodedBody()
 				: request.getUrlParameters());
 		var sortedKeys = [],
@@ -156,6 +156,13 @@
 		return result;
 	}
 
+	function canonicalBodyDigest(request) {
+		var content = (request.body && !contentTypeIsQueryParameters(requestContentType(request))
+				? request.body
+				: '');
+		return sha256Hex(content);
+	}
+
 	function generateCanonicalRequestMessage(params) {
 		var msg =
 			(params.method === undefined ? 'GET' : params.method.toUpperCase()) + '\n'
@@ -180,7 +187,7 @@
 			var now = requestDate(request);
 			var day = iso8601Date(now);
 			var daytime = iso8601Date(now, true);
-			var bodyHash = sha256Hex(request.body || '');
+			var canonBodyDigest = canonicalBodyDigest(request);
 			var canonHeaders = canonicalHeaders(request, uri, now);
 			var canonQueryParams = canonicalQueryParameters(request);
 
@@ -190,7 +197,7 @@
 				uri: uri,
 				queryParams : canonQueryParams,
 				headers : canonHeaders,
-				bodyDigest: bodyHash
+				bodyDigest: canonBodyDigest
 			});
 
 			var canonicalHash = sha256Hex(canonical);
