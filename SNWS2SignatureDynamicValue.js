@@ -50,10 +50,14 @@
 		return (contentType && contentType.match(kFormUrlEncodedContentTypeRegex));
 	}
 
+	function requestBodyTreatedAsQueryParameters(request) {
+		var contentType = requestContentType(request);
+		return (request.method === 'POST' && contentTypeIsQueryParameters(contentType));
+	}
+
 	function canonicalQueryParameters(request) {
 		var data = request.body,
-			contentType = requestContentType(request),
-			params = (contentTypeIsQueryParameters(contentType)
+			params = (requestBodyTreatedAsQueryParameters(request)
 				? request.getUrlEncodedBody()
 				: request.getUrlParameters());
 		var sortedKeys = [],
@@ -157,7 +161,7 @@
 	}
 
 	function canonicalBodyDigest(request) {
-		var content = (request.body && !contentTypeIsQueryParameters(requestContentType(request))
+		var content = (request.body && !requestBodyTreatedAsQueryParameters(request)
 				? request.body
 				: '');
 		return sha256Hex(content);
