@@ -180,13 +180,59 @@
 		return msg;
 	}
 
+	function parseUrlSearch(search) {
+		var params = {};
+		var pairs;
+		var pair;
+		var i, len;
+		if ( search !== undefined && search.length > 0 ) {
+			// remove any leading ? character
+			if ( search.match(/^\?/) ) {
+				search = search.substring(1);
+			}
+			pairs = search.split('&');
+			for ( i = 0, len = pairs.length; i < len; i++ ) {
+				pair = pairs[i].split('=', 2);
+				if ( pair.length === 2 ) {
+					params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+				}
+			}
+		}
+		return params;
+	}
+
+	function currentRequest(context) {
+		var req = context.getCurrentRequest();
+		if ( !this.preSignedUrl ) {
+			return req;
+		}
+		var me = this;
+		return {
+			method: me.preSignedMethod,
+			url: me.preSignedUrl,
+			body: me.preSignedContent,
+			getHeaderByName: function(name) {
+				return (me.preSignedHeaders ? me.preSignedHeaders[name] : undefined);
+			},
+			getHeadersNames: function() {
+				return me.preSignedHeaders;
+			},
+			getUrlEncodedBody: function() {
+				return me.preSignedContent;
+			},
+			getUrlParameters: function() {
+				return parseUrlSearch(getLocation(me.preSignedUrl).search);
+			},
+		};
+	}
+
 	// See https://github.com/SolarNetwork/solarnetwork/wiki/SolarNet-API-authentication-scheme-V2
 	var SNWS2SignatureDynamicValue = function() {
 		this.evaluate = function(context) {
-			if ( context.runtimeInfo.task != 'requestSend' ) {
+			if ( !this.preSignedUrl && context.runtimeInfo.task != 'requestSend' ) {
 				return '** SNWS auth is only generated during request send **'
 			}
-			var request = context.getCurrentRequest();
+			var request = currentRequest.call(this, context);
 			var uri = getLocation(request.url);
 			var now = requestDate(request);
 			var day = iso8601Date(now);
@@ -235,6 +281,11 @@
 	SNWS2SignatureDynamicValue.inputs = [
 		  DynamicValueInput('key', 'SN Access Key', 'SecureValue'),
 		  DynamicValueInput('secret', 'SN Secret Key', 'SecureValue'),
+		  DynamicValueInput('preSignedUrl', 'Pre-sign URL', 'String'),
+		  DynamicValueInput('preSignedMethod', 'Pre-sign Method', 'Select',
+		  	{"choices": {"GET":"GET", "POST":"POST", "PUT":"PUT", "DELETE":"DELETE"}}),
+		  DynamicValueInput('preSignedHeaders', 'Pre-sign Headers', 'KeyValueList'),
+		  DynamicValueInput('preSignedContent', 'Pre-sign Content', 'String'),
 	  ];
 
 	registerDynamicValueClass(SNWS2SignatureDynamicValue);
