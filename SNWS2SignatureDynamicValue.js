@@ -212,13 +212,31 @@
 			url: me.preSignedUrl,
 			body: me.preSignedContent,
 			getHeaderByName: function(name) {
-				return (me.preSignedHeaders ? me.preSignedHeaders[name] : undefined);
+				var val,
+					lcName = name.toLowerCase();
+				if ( me.preSignedHeaders ) {
+					me.preSignedHeaders.some(function(kv) {
+						if ( kv[0].toLowerCase() === lcName ) {
+							val = kv[1];
+							return true;
+						}
+						return false;
+					});
+				}
+				if ( !val && (lcName === 'date' || lcName === 'x-sn-date') ) {
+					val = req.getHeaderByName(name);
+				}
+				return val;
 			},
 			getHeadersNames: function() {
-				return me.preSignedHeaders;
+				var names;
+				if ( me.preSignedHeaders ) {
+					names = me.preSignedHeaders.map(function(kv) { return kv[0]; });
+				}
+				return names;
 			},
 			getUrlEncodedBody: function() {
-				return me.preSignedContent;
+				return parseUrlSearch(me.preSignedContent);
 			},
 			getUrlParameters: function() {
 				return parseUrlSearch(getLocation(me.preSignedUrl).search);
