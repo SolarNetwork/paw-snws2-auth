@@ -180,13 +180,77 @@
 		return msg;
 	}
 
+	function parseUrlSearch(search) {
+		var params = {};
+		var pairs;
+		var pair;
+		var i, len;
+		if ( search !== undefined && search.length > 0 ) {
+			// remove any leading ? character
+			if ( search.match(/^\?/) ) {
+				search = search.substring(1);
+			}
+			pairs = search.split('&');
+			for ( i = 0, len = pairs.length; i < len; i++ ) {
+				pair = pairs[i].split('=', 2);
+				if ( pair.length === 2 ) {
+					params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+				}
+			}
+		}
+		return params;
+	}
+
+	function currentRequest(context) {
+		var req = context.getCurrentRequest();
+		if ( !this.preSignedUrl ) {
+			return req;
+		}
+		var me = this;
+		return {
+			method: me.preSignedMethod,
+			url: me.preSignedUrl,
+			body: me.preSignedContent,
+			getHeaderByName: function(name) {
+				var val,
+					lcName = name.toLowerCase();
+				if ( me.preSignedHeaders ) {
+					me.preSignedHeaders.some(function(kv) {
+						if ( kv[0].toLowerCase() === lcName ) {
+							val = kv[1];
+							return true;
+						}
+						return false;
+					});
+				}
+				if ( !val && (lcName === 'date' || lcName === 'x-sn-date') ) {
+					val = req.getHeaderByName(name);
+				}
+				return val;
+			},
+			getHeadersNames: function() {
+				var names;
+				if ( me.preSignedHeaders ) {
+					names = me.preSignedHeaders.map(function(kv) { return kv[0]; });
+				}
+				return names;
+			},
+			getUrlEncodedBody: function() {
+				return parseUrlSearch(me.preSignedContent);
+			},
+			getUrlParameters: function() {
+				return parseUrlSearch(getLocation(me.preSignedUrl).search);
+			},
+		};
+	}
+
 	// See https://github.com/SolarNetwork/solarnetwork/wiki/SolarNet-API-authentication-scheme-V2
 	var SNWS2SignatureDynamicValue = function() {
 		this.evaluate = function(context) {
-			if ( context.runtimeInfo.task != 'requestSend' ) {
+			if ( !this.preSignedUrl && context.runtimeInfo.task != 'requestSend' ) {
 				return '** SNWS auth is only generated during request send **'
 			}
-			var request = context.getCurrentRequest();
+			var request = currentRequest.call(this, context);
 			var uri = getLocation(request.url);
 			var now = requestDate(request);
 			var day = iso8601Date(now);
@@ -235,6 +299,11 @@
 	SNWS2SignatureDynamicValue.inputs = [
 		  DynamicValueInput('key', 'SN Access Key', 'SecureValue'),
 		  DynamicValueInput('secret', 'SN Secret Key', 'SecureValue'),
+		  DynamicValueInput('preSignedUrl', 'Pre-sign URL', 'String'),
+		  DynamicValueInput('preSignedMethod', 'Pre-sign Method', 'Select',
+		  	{"choices": {"GET":"GET", "POST":"POST", "PUT":"PUT", "DELETE":"DELETE"}}),
+		  DynamicValueInput('preSignedHeaders', 'Pre-sign Headers', 'KeyValueList'),
+		  DynamicValueInput('preSignedContent', 'Pre-sign Content', 'String'),
 	  ];
 
 	registerDynamicValueClass(SNWS2SignatureDynamicValue);
