@@ -90,7 +90,7 @@
 		var result = {
 			headerNames : ['host'],
 			headers : {
-				'host' : uri.host
+				'host' : (uri.port && uri.port == 80 ? uri.hostname : uri.host)
 			}
 		};
 		var names = request.getHeadersNames();
@@ -275,9 +275,6 @@
 				+ daytime + '\n'
 				+ canonicalHash;
 
-			console.log('Canonical request:\n' +canonical
-				+'\n\nString to sign:\n' +stringToSign);
-
 			// Step 3
 			var signKey = getSignatureKey(this.secret, day);
 
@@ -288,6 +285,11 @@
 				+ this.key
 				+ ',SignedHeaders=' + canonHeaders.headerNames.join(';')
 				+ ',Signature=' + signature;
+
+			console.log('Canonical request:\n' +canonical
+				+'\n\nString to sign:\n' +stringToSign
+				+'\n\nSigning date: ' +day
+				+'\nSigning key : ' +signKey);
 
 			return auth;
 		};
