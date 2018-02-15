@@ -90,7 +90,7 @@
 		var result = {
 			headerNames : ['host'],
 			headers : {
-				'host' : uri.host
+				'host' : (uri.port && uri.port == 80 ? uri.hostname : uri.host)
 			}
 		};
 		var names = request.getHeadersNames();
