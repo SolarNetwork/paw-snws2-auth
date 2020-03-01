@@ -246,6 +246,14 @@
 
 	// See https://github.com/SolarNetwork/solarnetwork/wiki/SolarNet-API-authentication-scheme-V2
 	var SNWS2SignatureDynamicValue = function() {
+		this.title = function(context) {
+			return 'SNWS2 Auth';
+		};
+		
+		this.text = function(context) {
+			return this.key;
+		};
+		
 		this.evaluate = function(context) {
 			if ( !this.preSignedUrl && context.runtimeInfo.task != 'requestSend' ) {
 				return '** SNWS auth is only generated during request send **'
@@ -299,13 +307,13 @@
 	SNWS2SignatureDynamicValue.title = 'SolarNetwork Signature V2 Auth';
 	SNWS2SignatureDynamicValue.help = 'https://github.com/SolarNetwork/Paw-SNWS2SignatureDynamicValue';
 	SNWS2SignatureDynamicValue.inputs = [
-		  DynamicValueInput('key', 'SN Access Key', 'SecureValue'),
-		  DynamicValueInput('secret', 'SN Secret Key', 'SecureValue'),
-		  DynamicValueInput('preSignedUrl', 'Pre-sign URL', 'String'),
-		  DynamicValueInput('preSignedMethod', 'Pre-sign Method', 'Select',
+		  InputField('key', 'SN Access Key', 'SecureValue'),
+		  InputField('secret', 'SN Secret Key', 'SecureValue'),
+		  InputField('preSignedUrl', 'Pre-sign URL', 'String'),
+		  InputField('preSignedMethod', 'Pre-sign Method', 'Select',
 		  	{"choices": {"GET":"GET", "POST":"POST", "PUT":"PUT", "DELETE":"DELETE"}}),
-		  DynamicValueInput('preSignedHeaders', 'Pre-sign Headers', 'KeyValueList'),
-		  DynamicValueInput('preSignedContent', 'Pre-sign Content', 'String'),
+		  InputField('preSignedHeaders', 'Pre-sign Headers', 'KeyValueList'),
+		  InputField('preSignedContent', 'Pre-sign Content', 'String'),
 	  ];
 
 	registerDynamicValueClass(SNWS2SignatureDynamicValue);
