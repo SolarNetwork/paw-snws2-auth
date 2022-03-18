@@ -161,10 +161,19 @@
 	}
 
 	function canonicalBodyDigest(request) {
-		var content = (request.body && !requestBodyTreatedAsQueryParameters(request)
-				? request.body
-				: '');
-		return sha256Hex(content);
+		if ( requestBodyTreatedAsQueryParameters(request) ) {
+			return sha256Hex('');
+		}
+		var rawBody = DynamicValue("com.luckymarmot.RequestRawBodyDynamicValue", {
+			request: request.id
+		});
+		var digest = DynamicValue("com.luckymarmot.HashDynamicValue", {
+			input: DynamicString(rawBody),
+			hashType: 5, // SHA256
+			encoding: 0, // Hex
+			uppercase: false,
+		});
+		return digest.getEvaluatedString();
 	}
 
 	function generateCanonicalRequestMessage(params) {
